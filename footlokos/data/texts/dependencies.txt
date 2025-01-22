@@ -1,0 +1,5 @@
+1. Ejecutar npm install
+2. Verificar versiones de dependencias
+3. Actualizar paquetes obsoletos
+4. Resolver conflictos de versiones
+5. Documentar cambios en package.json

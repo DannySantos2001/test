@@ -1,0 +1,3 @@
+- Alt + Tab
+- Close Store
+- Start Store

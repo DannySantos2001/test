@@ -1,0 +1,5 @@
+1. Ejecutar pruebas unitarias
+2. Construir la aplicación
+3. Verificar variables de producción
+4. Realizar despliegue
+5. Monitorear logs del sistema

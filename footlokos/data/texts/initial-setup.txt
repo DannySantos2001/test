@@ -1,0 +1,5 @@
+1. Clonar el repositorio
+2. Crear rama de desarrollo
+3. Configurar variables de entorno
+4. Verificar permisos de acceso
+5. Actualizar documentación inicial

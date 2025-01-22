@@ -1,0 +1,19 @@
+{
+    "items": [
+      {
+        "id": 1,
+        "name": "Configuración Inicial",
+        "textFile": "initial-setup.txt"
+      },
+      {
+        "id": 2,
+        "name": "Instalación de Dependencias",
+        "textFile": "dependencies.txt"
+      },
+      {
+        "id": 3,
+        "name": "Despliegue",
+        "textFile": "deployment.txt"
+      }
+    ]
+  }
