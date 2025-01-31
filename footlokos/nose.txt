@@ -1,0 +1,1040 @@
+html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Service Desk</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Barra superior fija -->
+        <div class="top-bar">
+            <button class="home-button" id="homeButton">Inicio</button>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Buscar...">
+            </div>
+            <div class="credentials-quick-access">
+                <button id="credentialsButton">Credenciales de Agente</button>
+            </div>
+        </div>
+
+        <!-- Modal para credenciales -->
+        <div id="credentialsModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Credenciales de Agente</h2>
+                <div id="credentialsContent"></div>
+            </div>
+        </div>
+
+        <!-- Navegación principal -->
+        <div class="main-navigation">
+            <div class="nav-section" id="mainNav"></div>
+        </div>
+
+        <!-- Área de contenido -->
+        <main class="content">
+            <div id="contentArea"></div>
+        </main>
+    </div>
+    <script src="data.js"></script>
+    <script src="main.js"></script>
+
+</body>
+</html>
+
+
+datos....
+window.manualData = {
+    impresoras: {
+            title: "Impresoras",
+            categories: {
+                receipt: {
+                    title: "Receipt Printers",
+                    printers: {
+                        ibm: {
+                            title: "IBM",
+                            problems: [
+                                {
+                                    title: "Papel atascado",
+                                    steps: [
+                                        {
+                                            text: "Apagar la impresora",
+                                            image: "https://example.com/printer-power.jpg"
+                                        },
+                                        {
+                                            text: "Reiniciar el servicio",
+                                            command: "sudo service cups restart"
+                                        },
+                                        {
+                                            text: "Abrir la cubierta frontal",
+                                            image: "https://example.com/printer-cover.jpg"
+                                        },
+                                        {
+                                            text: "Remover el papel atascado con cuidado",
+                                            image: "https://example.com/remove-paper.jpg"
+                                        },
+                                        {
+                                            text: "Verificar que no queden residuos"
+                                        },
+                                        {
+                                            text: "Cerrar la cubierta y encender"
+                                        }
+                                    ]
+                                },
+                                {
+                                    title: "Error de conexión",
+                                    steps: [
+                                        {
+                                            text: "Verificar cable de poder"
+                                        },
+                                        {
+                                            text: "Comprobar conexión USB"
+                                        },
+                                        {
+                                            text: "Reiniciar la impresora"
+                                        },
+                                        {
+                                            text: "Verificar estado del servicio",
+                                            command: "systemctl status cups"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        epson: {
+                            title: "Epson",
+                            problems: [
+                                {
+                                    title: "Error de papel",
+                                    steps: [
+                                        {
+                                            text: "Verificar rollo de papel"
+                                        },
+                                        {
+                                            text: "Ajustar posición del papel"
+                                        },
+                                        {
+                                            text: "Limpiar sensores",
+                                            command: "printer-clean-sensors"
+                                        },
+                                        {
+                                            text: "Reiniciar impresora"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                },
+                label: {
+                    title: "Label Printers",
+                    printers: {
+                        zebra: {
+                            title: "Zebra",
+                            problems: [
+                                {
+                                    title: "Etiquetas desalineadas",
+                                    steps: [
+                                        {
+                                            text: "Calibrar sensor"
+                                        },
+                                        {
+                                            text: "Ajustar guías de papel"
+                                        },
+                                        {
+                                            text: "Verificar configuración",
+                                            command: "zebra-config --check"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+    },
+    dispositivos: {
+            title: "Dispositivos",
+            categories: {
+                hht: {
+                    title: "HHT",
+                    printers: {
+                        mc9090: {
+                            title: "MC9090",
+                            problems: [
+                                {
+                                    title: "No enciende",
+                                    steps: [
+                                        {
+                                            text: "Verificar batería"
+                                        },
+                                        {
+                                            text: "Realizar hard reset",
+                                            command: "adb reboot"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+    }
+};
+
+
+window.credentialsData = {
+    title: "Credenciales de Agente",
+    credentials: [
+            {
+                system: "ARS",
+                username: "servicedesk",
+                password: "sd2024!"
+            },
+            {
+                system: "VNC",
+                username: "support",
+                password: "vnc2024!"
+            }
+    ]
+};
+
+
+main.js -----------------------------------------------------
+const manualData = window.manualData;
+const credentialsData = window.credentialsData;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const mainNav = document.getElementById('mainNav');
+    const contentArea = document.getElementById('contentArea');
+    const searchInput = document.getElementById('searchInput');
+    const credentialsButton = document.getElementById('credentialsButton');
+    const credentialsModal = document.getElementById('credentialsModal');
+    const closeModal = document.querySelector('.close');
+    const credentialsContent = document.getElementById('credentialsContent');
+    const homeButton = document.getElementById('homeButton');
+
+    let currentPath = [];
+    let currentExpandedCategory = null;
+
+    function createMainNavigation() {
+        mainNav.innerHTML = '';
+        Object.entries(manualData).forEach(([key, category]) => {
+            const card = document.createElement('div');
+            card.className = 'nav-card';
+            card.innerHTML = `
+                <h2>${category.title}</h2>
+                <div class="subcategory-list">
+                    ${Object.entries(category.categories || {})
+                        .map(([subKey, subCat]) => `
+                            <div class="subcategory-item" 
+                                 data-category="${key}" 
+                                 data-subcategory="${subKey}">
+                                ${subCat.title}
+                                <div class="printer-list">
+                                    ${Object.entries(subCat.printers || {})
+                                        .map(([printerKey, printer]) => `
+                                            <div class="printer-item"
+                                                 data-category="${key}"
+                                                 data-subcategory="${subKey}"
+                                                 data-printer="${printerKey}">
+                                                ${printer.title}
+                                            </div>
+                                        `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                </div>
+            `;
+            
+            const h2 = card.querySelector('h2');
+            h2.addEventListener('click', () => {
+                if (currentExpandedCategory && currentExpandedCategory !== card) {
+                    currentExpandedCategory.classList.remove('expanded');
+                }
+                card.classList.toggle('expanded');
+                currentExpandedCategory = card;
+            });
+
+            mainNav.appendChild(card);
+        });
+
+        document.querySelectorAll('.subcategory-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.classList.contains('printer-item')) return;
+                
+                const wasExpanded = item.classList.contains('expanded');
+                document.querySelectorAll('.subcategory-item').forEach(si => {
+                    si.classList.remove('expanded');
+                });
+                if (!wasExpanded) {
+                    item.classList.add('expanded');
+                }
+            });
+        });
+
+        document.querySelectorAll('.printer-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const category = item.dataset.category;
+                const subcategory = item.dataset.subcategory;
+                const printer = item.dataset.printer;
+                showPrinterProblems(category, subcategory, printer);
+            });
+        });
+    }
+
+    function showPrinterSelection(category, subcategory) {
+        const categoryData = manualData[category].categories[subcategory];
+        currentPath = [category, subcategory];
+        
+        contentArea.innerHTML = `
+            <div class="breadcrumb">
+                ${createBreadcrumb()}
+            </div>
+            <div class="section">
+                <h2>${categoryData.title}</h2>
+                <div class="printer-grid">
+                    ${Object.entries(categoryData.printers)
+                        .map(([printerKey, printer]) => `
+                            <div class="printer-card" data-printer="${printerKey}">
+                                <h3>${printer.title}</h3>
+                                <p>${printer.problems.length} soluciones disponibles</p>
+                            </div>
+                        `).join('')}
+                </div>
+            </div>
+        `;
+
+        document.querySelectorAll('.printer-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const printerKey = card.dataset.printer;
+                showPrinterProblems(category, subcategory, printerKey);
+            });
+        });
+    }
+
+    function showPrinterProblems(category, subcategory, printerKey) {
+        const printer = manualData[category].categories[subcategory].printers[printerKey];
+        currentPath = [category, subcategory, printerKey];
+
+        contentArea.innerHTML = `
+            <div class="breadcrumb">
+                ${createBreadcrumb()}
+            </div>
+            <div class="section">
+                <h2>${printer.title}</h2>
+                <div class="problems-list">
+                    ${printer.problems.map(problem => `
+                        <div class="problem-item">
+                            <h3>${problem.title}</h3>
+                            <div class="steps-list">
+                                ${problem.steps.map((step, index) => `
+                                    <div class="step-item">
+                                        <div class="step-content">
+                                            <div class="step-number">${index + 1}. ${step.text}</div>
+                                            ${step.image ? `
+                                                <img src="${step.image}" alt="${step.text}" class="step-image">
+                                            ` : ''}
+                                            ${step.command ? `
+                                                <div class="command-container">
+                                                    <code class="command-text">${step.command}</code>
+                                                    <button class="copy-button" data-command="${step.command}">
+                                                        Copiar
+                                                    </button>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        document.querySelectorAll('.copy-button[data-command]').forEach(button => {
+            button.addEventListener('click', async () => {
+                const command = button.dataset.command;
+                try {
+                    await navigator.clipboard.writeText(command);
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '¡Copiado!';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                    }, 2000);
+                } catch (err) {
+                    console.error('Error al copiar:', err);
+                }
+            });
+        });
+    }
+
+    function createBreadcrumb() {
+        const paths = {
+            0: manualData[currentPath[0]]?.title || '',
+            1: manualData[currentPath[0]]?.categories[currentPath[1]]?.title || '',
+            2: manualData[currentPath[0]]?.categories[currentPath[1]]?.printers[currentPath[2]]?.title || ''
+        };
+
+        return Object.entries(paths)
+            .filter(([_, value]) => value)
+            .map(([index, value]) => `
+                <span data-level="${index}">${value}</span>
+            `).join('');
+    }
+
+    function setupSearch() {
+        const searchResults = document.createElement('div');
+        searchResults.className = 'search-results';
+        searchInput.parentNode.appendChild(searchResults);
+
+
+        //Lo que busca
+        function searchData(query) {
+            const results = [];
+        
+            // Iterar sobre las categorías, subcategorías, impresoras y problemas
+            Object.entries(manualData).forEach(([categoryKey, category]) => {
+                // Buscar en el título de la categoría
+                if (category.title.toLowerCase().includes(query.toLowerCase())) {
+                    results.push({
+                        category: categoryKey,
+                        title: category.title,
+                        source: 'category'
+                    });
+                }
+        
+                Object.entries(category.categories).forEach(([subcategoryKey, subcategory]) => {
+                    // Buscar en el título de la subcategoría
+                    if (subcategory.title.toLowerCase().includes(query.toLowerCase())) {
+                        results.push({
+                            category: categoryKey,
+                            subcategory: subcategoryKey,
+                            title: subcategory.title,
+                            source: 'subcategory'
+                        });
+                    }
+        
+                    Object.entries(subcategory.printers).forEach(([printerKey, printer]) => {
+                        // Buscar en el título de la impresora
+                        if (printer.title.toLowerCase().includes(query.toLowerCase())) {
+                            results.push({
+                                category: categoryKey,
+                                subcategory: subcategoryKey,
+                                printer: printerKey,
+                                title: printer.title,
+                                source: 'printer'
+                            });
+                        }
+        
+                        // Buscar en los problemas de la impresora
+                        printer.problems.forEach(problem => {
+                            if (problem.title.toLowerCase().includes(query.toLowerCase())) {
+                                results.push({
+                                    category: categoryKey,
+                                    subcategory: subcategoryKey,
+                                    printer: printerKey,
+                                    problem: problem.title,
+                                    source: 'problem'
+                                });
+                            }
+                        });
+                    });
+                });
+            });
+        
+            return results;
+        }
+        
+
+        //MOdificar la visualizacion
+        function showSearchResults(results) {
+            searchResults.innerHTML = results.map(result => {
+                if (result.source === 'category') {
+                    return `
+                        <div class="search-result-item" 
+                             data-category="${result.category}">
+                            Categoría: ${result.title}
+                        </div>
+                    `;
+                } else if (result.source === 'subcategory') {
+                    return `
+                        <div class="search-result-item" 
+                             data-category="${result.category}"
+                             data-subcategory="${result.subcategory}">
+                            Subcategoría: ${result.title}
+                        </div>
+                    `;
+                } else if (result.source === 'printer') {
+                    return `
+                        <div class="search-result-item" 
+                             data-category="${result.category}"
+                             data-subcategory="${result.subcategory}"
+                             data-printer="${result.printer}">
+                            Impresora: ${result.title}
+                        </div>
+                    `;
+                } else if (result.source === 'problem') {
+                    return `
+                        <div class="search-result-item" 
+                             data-category="${result.category}"
+                             data-subcategory="${result.subcategory}"
+                             data-printer="${result.printer}">
+                            Problema: ${result.problem}
+                        </div>
+                    `;
+                }
+            }).join('');
+        
+            if (results.length > 0) {
+                searchResults.classList.add('active');
+            } else {
+                searchResults.classList.remove('active');
+            }
+        }
+        
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            if (query.length >= 2) {
+                const results = searchData(query);
+                showSearchResults(results);
+            } else {
+                searchResults.classList.remove('active');
+            }
+        });
+
+        searchResults.addEventListener('click', (e) => {
+            const resultItem = e.target.closest('.search-result-item');
+            if (resultItem) {
+                const { category, subcategory, printer } = resultItem.dataset;
+                showPrinterProblems(category, subcategory, printer);
+                searchResults.classList.remove('active');
+                searchInput.value = '';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                searchResults.classList.remove('active');
+            }
+        });
+    }
+
+    homeButton.addEventListener('click', () => {
+        currentPath = [];
+        contentArea.innerHTML = '';
+        document.querySelectorAll('.nav-card').forEach(card => {
+            card.classList.remove('expanded');
+        });
+        document.querySelectorAll('.subcategory-item').forEach(item => {
+            item.classList.remove('expanded');
+        });
+    });
+
+    credentialsButton.addEventListener('click', () => {
+        credentialsModal.style.display = 'block';
+        credentialsContent.innerHTML = `
+            <table class="credentials-table">
+                <thead>
+                    <tr>
+                        <th>Sistema</th>
+                        <th>Usuario</th>
+                        <th>Contraseña</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${credentialsData.credentials.map(cred => `
+                        <tr>
+                            <td>${cred.system}</td>
+                            <td>
+                                <div class="credentials-cell">
+                                    <span>${cred.username}</span>
+                                    <button class="copy-credential" data-copy="${cred.username}">
+                                        Copiar
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="credentials-cell">
+                                    <span>${cred.password}</span>
+                                    <button class="copy-credential" data-copy="${cred.password}">
+                                        Copiar
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        document.querySelectorAll('.copy-credential').forEach(button => {
+            button.addEventListener('click', async () => {
+                const textToCopy = button.dataset.copy;
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    const originalText = button.textContent;
+                    button.textContent = '¡Copiado!';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                    }, 2000);
+                } catch (err) {
+                    console.error('Error al copiar:', err);
+                }
+            });
+        });
+    });
+
+    closeModal.addEventListener('click', () => {
+        credentialsModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === credentialsModal) {
+            credentialsModal.style.display = 'none';
+        }
+    });
+
+    createMainNavigation();
+    setupSearch();
+});
+
+
+cs-----------------------------------
+:root {
+    --primary-color: #1d9bf0;
+    --secondary-color: #536471;
+    --text-color: #0f1419;
+    --background-color: #f7f9f9;
+    --border-color: #eff3f4;
+    --hover-color: #e8f5fd;
+    --sidebar-width: 300px;
+    --header-height: 64px;
+    --border-radius: 16px;
+    --button-radius: 20px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--background-color);
+}
+
+.container {
+    padding-top: var(--header-height);
+    display: flex;
+}
+
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    background-color: white;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 1000;
+    justify-content: space-between;
+}
+
+.home-button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: var(--button-radius);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: background-color 0.2s;
+}
+
+.home-button:hover {
+    background-color: #1a8cd8;
+}
+
+.credentials-quick-access button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: var(--button-radius);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: background-color 0.2s;
+}
+
+.credentials-quick-access button:hover {
+    background-color: #1a8cd8;
+}
+
+.search-container {
+    flex: 0 1 400px;
+    margin: 0 20px;
+    position: relative;
+}
+
+#searchInput {
+    width: 100%;
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--button-radius);
+    font-size: 15px;
+    background-color: var(--background-color);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+#searchInput:focus {
+    outline: none;
+    background-color: white;
+    box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: var(--border-radius);
+    margin-top: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+}
+
+.search-results.active {
+    display: block;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+    background-color: var(--hover-color);
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.main-navigation {
+    position: fixed;
+    left: 0;
+    top: var(--header-height);
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: white;
+    border-right: 1px solid var(--border-color);
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.nav-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-card {
+    border: none;
+    background: white;
+    margin-bottom: 12px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.nav-card h2 {
+    padding: 16px 20px;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    color: var(--text-color);
+    font-size: 16px;
+    font-weight: 600;
+    background-color: var(--background-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-card h2:hover {
+    background-color: var(--hover-color);
+}
+
+.nav-card h2::after {
+    content: "▼";
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.nav-card.expanded h2::after {
+    transform: rotate(180deg);
+}
+
+.subcategory-list {
+    display: none;
+}
+
+.nav-card.expanded .subcategory-list {
+    display: block;
+}
+
+.subcategory-item {
+    padding: 12px 20px;
+    margin: 4px 8px;
+    border-radius: var(--button-radius);
+    transition: all 0.2s;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-color);
+    border-left: 3px solid transparent;
+}
+
+.subcategory-item:hover {
+    background-color: var(--hover-color);
+    border-left-color: var(--primary-color);
+}
+
+.printer-list {
+    display: none;
+    margin-left: 16px;
+}
+
+.subcategory-item.expanded .printer-list {
+    display: block;
+}
+
+.printer-item {
+    padding: 10px 20px;
+    margin: 4px 8px;
+    border-radius: var(--button-radius);
+    transition: all 0.2s;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--secondary-color);
+    border-left: 3px solid transparent;
+}
+
+.printer-item:hover {
+    background-color: var(--hover-color);
+    border-left-color: var(--primary-color);
+    color: var(--text-color);
+}
+
+.content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 24px;
+    max-width: calc(100% - var(--sidebar-width));
+}
+
+.section {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border: none;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.problem-item {
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: none;
+    margin: 16px 0;
+    padding: 20px;
+}
+
+.problem-item h3 {
+    color: var(--primary-color);
+    margin-bottom: 16px;
+}
+
+.step-item {
+    padding: 12px;
+    margin: 8px 0;
+    background: var(--background-color);
+    border-radius: var(--border-radius);
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-image {
+    max-width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin: 12px 0;
+}
+
+.command-container {
+    border-radius: var(--border-radius);
+    background: #15202b;
+    padding: 12px;
+    margin: 12px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.command-text {
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    margin-right: 12px;
+}
+
+.copy-button {
+    border-radius: var(--button-radius);
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.copy-button:hover {
+    background-color: #1a8cd8;
+}
+
+.breadcrumb {
+    margin-bottom: 24px;
+    padding: 12px 16px;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.breadcrumb span {
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.breadcrumb span:not(:last-child)::after {
+    content: "/";
+    color: var(--secondary-color);
+    margin-left: 8px;
+}
+
+.breadcrumb span:last-child {
+    color: var(--text-color);
+    cursor: default;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1001;
+}
+
+.modal-content {
+    border-radius: var(--border-radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    margin: 15% auto;
+    padding: 24px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+    border: 1px solid var(--border-color);
+}
+
+.close {
+    position: absolute;
+    right: 24px;
+    top: 24px;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--secondary-color);
+}
+
+.close:hover {
+    color: var(--text-color);
+}
+
+.credentials-table {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 24px;
+}
+
+.credentials-table th,
+.credentials-table td {
+    padding: 16px;
+    position: relative;
+    text-align: left;
+    border: 1px solid var(--border-color);
+}
+
+.credentials-table th {
+    background-color: var(--background-color);
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.credentials-table tr:hover td {
+    background-color: var(--hover-color);
+}
+
+.credentials-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.copy-credential {
+    background: transparent;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--button-radius);
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s, background-color 0.2s;
+}
+
+.credentials-table tr:hover .copy-credential {
+    opacity: 1;
+}
+
+.copy-credential:hover {
+    background-color: var(--hover-color);
+}
